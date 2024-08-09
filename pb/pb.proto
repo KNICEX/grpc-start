@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "./;pb";
+
+service Echo {
+  rpc ServerStreamingEcho(EchoReq) returns(stream EchoResp) {}
+  rpc ClientStreamingEcho(stream EchoReq) returns(EchoResp) {}
+  rpc BidirectionalStreamingEcho(stream EchoReq) returns(stream EchoResp) {}
+}
+
+message EchoReq {
+  string message = 1;
+}
+
+message EchoResp {
+  string message = 1;
+}
