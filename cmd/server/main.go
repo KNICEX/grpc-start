@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	grpc_start "github.com/KNICEX/grpc-start"
 	"github.com/KNICEX/grpc-start/pb"
+	"github.com/KNICEX/grpc-start/register/etcd"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 	"io"
-	"net"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type Service struct {
@@ -76,16 +79,20 @@ func (s Service) BidirectionalStreamingEcho(g grpc.BidiStreamingServer[pb.EchoRe
 }
 
 func main() {
-	l, err := net.Listen("tcp", ":50051")
+	etcdClient, err := clientv3.New(clientv3.Config{
+		Endpoints:   []string{"localhost:12379"},
+		DialTimeout: time.Second * 3,
+	})
 	if err != nil {
 		panic(err)
 	}
-
-	grpcServer := grpc.NewServer()
-	pb.RegisterEchoServer(grpcServer, Service{})
-	fmt.Println("Server is running on port :50051")
-
-	if err = grpcServer.Serve(l); err != nil {
+	r, err := etcd.NewRegistry(etcdClient)
+	if err != nil {
 		panic(err)
 	}
+	server := grpc_start.NewServer("test", grpc_start.ServerWithRegistry(r))
+	pb.RegisterEchoServer(server, Service{})
+	fmt.Println("Server is running on port :50051")
+
+	server.Start("localhost:50051")
 }

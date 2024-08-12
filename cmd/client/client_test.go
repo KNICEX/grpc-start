@@ -3,29 +3,17 @@ package main
 import (
 	"context"
 	"github.com/KNICEX/grpc-start/pb"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
 )
-
-func newClient() pb.EchoClient {
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		panic(err)
-	}
-	grpcClient = pb.NewEchoClient(conn)
-	return grpcClient
-}
 
 func TestServerStreamingEcho(t *testing.T) {
 	client := newClient()
 	sc, err := client.ServerStreamingEcho(context.Background(), &pb.EchoReq{
 		Message: "hello",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	for {
 		resp, err := sc.Recv()
@@ -44,9 +32,7 @@ func TestServerStreamingEcho(t *testing.T) {
 func TestClientStreamingEcho(t *testing.T) {
 	client := newClient()
 	cc, err := client.ClientStreamingEcho(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
 		if err := cc.Send(&pb.EchoReq{Message: "hello"}); err != nil {
@@ -54,18 +40,14 @@ func TestClientStreamingEcho(t *testing.T) {
 		}
 	}
 	resp, err := cc.CloseAndRecv()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	t.Log("receive message:", resp.Message)
 }
 
 func TestBidirectionalStreamingEcho(t *testing.T) {
 	client := newClient()
 	bc, err := client.BidirectionalStreamingEcho(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
 		if err := bc.Send(&pb.EchoReq{Message: "hello"}); err != nil {
@@ -81,4 +63,10 @@ func TestBidirectionalStreamingEcho(t *testing.T) {
 		t.Fatal(err)
 	}
 
+}
+
+func TestBatch(t *testing.T) {
+	t.Run("TestServerStreamingEcho", TestServerStreamingEcho)
+	t.Run("TestClientStreamingEcho", TestClientStreamingEcho)
+	t.Run("TestBidirectionalStreamingEcho", TestBidirectionalStreamingEcho)
 }
